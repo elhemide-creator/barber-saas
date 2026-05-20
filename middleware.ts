@@ -8,9 +8,14 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  // Əgər Vercel-də şifrələr unudulubsa, sayt çökməsin deyə qoruma:
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return response;
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         get(name: string) {
@@ -34,23 +39,13 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // İstifadəçinin login olub-olmadığını yoxlayırıq
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // Əgər kimsə /admin və ya /dashboard səhifəsinə girmək istəyirsə və login deyilə, onu /login səhifəsinə yönləndiririk
-  if (!user && (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/dashboard'))) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  // Əgər adam artıq login olubsa və yenidən /login səhifəsinə girmək istəyirsə, onu birbaşa admin panelinə atırıq
-  if (user && request.nextUrl.pathname.startsWith('/login')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
+  await supabase.auth.getUser()
 
   return response
 }
 
-// Middleware-in hansı route-larda işləməyəcəyini seçirik (şəkillər, statik fayllar və s. çıxdaş edilir)
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }
