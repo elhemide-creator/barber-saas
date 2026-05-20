@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
 export default function HomePage() {
-  // Heç bir əlavə paket olmadan birbaşa yönləndirmə edir
-  redirect('/login');
+  // Sayta girəni birbaşa Azərbaycan dilindəki loqin səhifəsinə göndəririk
+  redirect('/az/login');
 }
