@@ -1,0 +1,22 @@
+{
+  "theme_color": "#0a0a0a",
+  "background_color": "#0a0a0a",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "name": "Barber SaaS Online Növbə",
+  "short_name": "BarberSaaS",
+  "description": "Premium Onlayn Bərbər Növbə Sistemi",
+  "icons": [
+    {
+      "src": "https://ibonslerhbvalzqxsdby.supabase.co/storage/v1/object/public/assets/icon.png",
+      "sizes": "192 x 192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://ibonslerhbvalzqxsdby.supabase.co/storage/v1/object/public/assets/icon.png",
+      "sizes": "512 x 512",
+      "type": "image/png"
+    }
+  ]
+}
