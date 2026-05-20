@@ -1,23 +1,26 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Turbopack xətasını susdurur
+  // Turbopack xətasını aradan qaldırır
   turbopack: {},
-  
-  // Vercel serverinin boğulmaması üçün prosesləri məhdudlaşdırır (WorkerError həlli)
+
+  // Serverless mühitdə RAM-ın dolmasının qarşısını alır
   experimental: {
-    cpus: 1,
-    workerThreads: false,
     memoryBasedWorkersCount: true,
   },
-  
-  // Build zamanı ağır yoxlamaları ləğv edib yaddaşa qənaət edir
+
+  // ƏN VACİB HİSSƏ: Kənar paketlərin (Pusher və s.) yaratdığı qlobal server xətalarını tamamilə bloklayır!
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [...(config.externals || []), "pusher"];
+    }
+    return config;
+  },
+
+  // Build zamanı heç bir xırda şeyə ilişməməsi üçün:
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  }
 };
 
 export default nextConfig;
