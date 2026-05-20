@@ -1,16 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Turbopack ayarlarını standartlaşdırır
+  // Turbopack ayarlarını təyin edir
   turbopack: {},
 
-  // Build zamanı TypeScript və ESLint xətalarını keçərək yaddaşı qoruyur
+  // Build zamanı TypeScript xətalarına göz yumaraq server yaddaşını qoruyur
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  }
+  
+  // DIQQƏT: Next.js 16-da 'eslint' açarı bura aid olmadığı üçün tamamilə silindi və xəta aradan qaldırıldı!
 };
 
 export default nextConfig;
