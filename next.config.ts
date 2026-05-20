@@ -4,12 +4,14 @@ const nextConfig: NextConfig = {
   // Turbopack xətasını susdurur
   turbopack: {},
   
-  // Vercel serverlərinin RAM-ı dolmasın deyə yaddaş limitini aktiv edir
+  // Vercel serverinin boğulmaması üçün prosesləri məhdudlaşdırır (WorkerError həlli)
   experimental: {
+    cpus: 1,
+    workerThreads: false,
     memoryBasedWorkersCount: true,
   },
   
-  // Build zamanı lazımsız yoxlamaları ləğv edib yaddaşa qənaət edir
+  // Build zamanı ağır yoxlamaları ləğv edib yaddaşa qənaət edir
   typescript: {
     ignoreBuildErrors: true,
   },
