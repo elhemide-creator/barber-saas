@@ -1,8 +1,9 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export function createClient() {
-  const cookieStore = cookies()
+export async function createClient() {
+  // Next.js 15 dəstəyi üçün bura 'await' əlavə olundu:
+  const cookieStore = await cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,14 +17,14 @@ export function createClient() {
           try {
             cookieStore.set({ name, value, ...options })
           } catch (error) {
-            // Server component-dən set ediləndə yarana biləcək xətanın qarşısını alır
+            // Server komponentlərində çərəz təyin etmək xətası ignor edilir
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options })
           } catch (error) {
-            // Server component-dən remove ediləndə
+            // Server komponentlərində çərəz silmək xətası ignor edilir
           }
         },
       },
