@@ -11,39 +11,105 @@ interface Appointment {
   service_type: string
   start_time: string
   status: string
+  barber_id: string
 }
 
 export default function DashboardPage() {
   const supabase = createClient()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // Rol və İstifadəçi məlumatları üçün state-lər
+  const [userRole, setUserRole] = useState<'ADMIN' | 'BARBER' | null>(null)
+  const [profileName, setProfileName] = useState<string>('İstifadəçi')
+  const [currentBarberId, setCurrentBarberId] = useState<string | null>(null)
 
-  // Məlumatları bazadan çəkirik
   useEffect(() => {
-    const fetchInitialData = async () => {
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('id, customer_name, customer_phone, service_type, start_time, status')
-        .order('created_at', { ascending: false })
+    const initializeDashboard = async () => {
+      setLoading(true)
+      
+      // 1. Giriş etmiş cari istifadəçini tapırıq
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setLoading(false)
+        return
+      }
 
-      if (data) setAppointments(data)
+      // 2. users cədvəlindən bu istifadəçinin rolunu və aid olduğu salonu çəkirik
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role, tenant_id')
+        .eq('id', user.id)
+        .single()
+
+      const role = userData?.role || 'ADMIN'
+      setUserRole(role)
+
+      let barberId: string | null = null
+      let displayName = 'Admin'
+
+      // 3. Əgər istifadəçi BƏRBƏRDİRSƏ, onun bərbər ID-sini və adını tapırıq
+      if (role === 'BARBER') {
+        const { data: barberData } = await supabase
+          .from('barbers')
+          .select('id, name')
+          .eq('user_id', user.id)
+          .single()
+        
+        if (barberData) {
+          barberId = barberData.id
+          displayName = barberData.name
+          setCurrentBarberId(barberId)
+        }
+      }
+      
+      setProfileName(displayName)
+
+      // 4. İlkin məlumatları rola görə süzərək gətirən funksiyasını çağırırıq
+      await fetchFilteredData(role, barberId, userData?.tenant_id)
       setLoading(false)
+
+      // 5. Realtime Qoşulma ayarı
+      const channel = supabase
+        .channel('realtime-appointments')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
+          fetchFilteredData(role, barberId, userData?.tenant_id)
+        })
+        .subscribe()
+
+      return channel
     }
 
-    fetchInitialData()
-
-    // Realtime Qoşulma: Yeni bir rezervasiya olanda ekrana anında düşür
-    const channel = supabase
-      .channel('realtime-appointments')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
-        fetchInitialData() // Hər hansı dəyişiklikdə datanı yenilə
-      })
-      .subscribe()
+    let activeChannel: any = null
+    initializeDashboard().then((channel) => {
+      activeChannel = channel
+    })
 
     return () => {
-      supabase.removeChannel(channel)
+      if (activeChannel) {
+        supabase.removeChannel(activeChannel)
+      }
     }
   }, [])
+
+  // Rola görə məlumatları süzgəcdən keçirib gətirən köməkçi funksiya
+  const fetchFilteredData = async (role: string, barberId: string | null, tenantId: string | null) => {
+    let query = supabase
+      .from('appointments')
+      .select('id, customer_name, customer_phone, service_type, start_time, status, barber_id')
+
+    // Əgər bərbərdirsə, yalnız öz ID-sinə aid olanları gətir
+    if (role === 'BARBER' && barberId) {
+      query = query.eq('barber_id', barberId)
+    } 
+    // Əgər adminsə, yalnız öz salonuna (tenant) aid olanları gətir
+    else if (role === 'ADMIN' && tenantId) {
+      query = query.eq('tenant_id', tenantId)
+    }
+
+    const { data } = await query.order('created_at', { ascending: false })
+    if (data) setAppointments(data)
+  }
 
   // Status rənglərini təyin edən köməkçi funksiya
   const getStatusClass = (status: string) => {
@@ -54,20 +120,33 @@ export default function DashboardPage() {
     }
   }
 
+  if (loading) {
+    return <div className="min-h-screen text-gray-400 text-sm flex items-center justify-center">Panel yüklənir...</div>
+  }
+
   return (
     <div className="space-y-8">
-      {/* Başlıq */}
+      {/* Dinamik Başlıq */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Xoş Gəldiniz, Admin!</h1>
-        <p className="text-gray-400 text-sm mt-1">Salonunuzun canlı statusu və növbə analizləri.</p>
+        <h1 className="text-3xl font-bold text-white">Xoş Gəldiniz, {profileName}!</h1>
+        <p className="text-gray-400 text-sm mt-1">
+          {userRole === 'ADMIN' 
+            ? 'Salonunuzun canlı statusu və növbə analizləri.' 
+            : 'Şəxsi günlük iş qrafikiniz və sizə gələn sifarişlər.'}
+        </p>
       </div>
 
-      {/* Statistika Kartları (MVP Analitika) */}
+      {/* Statistika Kartları (İstifadəçinin roluna görə dinamik hesablanır) */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { title: 'Günlük Növbələr', value: appointments.length, icon: Calendar, desc: 'Bu gün gözlənilən' },
-          { title: 'Aktiv Bərbərlər', value: '5', icon: Users, desc: 'Hazırda iş başında' },
-          { title: 'Təxmini Gəlir', value: '180 AZN', icon: TrendingUp, desc: 'Günlük struktur' },
+          { title: 'Günlük Növbələr', value: appointments.length, icon: Calendar, desc: 'Ümumi qeydə alınan' },
+          { 
+            title: userRole === 'ADMIN' ? 'Aktiv Bərbərlər' : 'Xidmət Sahəsi', 
+            value: userRole === 'ADMIN' ? '5' : 'Saç & Saqqal', 
+            icon: Users, 
+            desc: userRole === 'ADMIN' ? 'Hazırda iş başında' : 'Profil növü' 
+          },
+          { title: 'Təxmini Gəlir', value: `${appointments.length * 20} AZN`, icon: TrendingUp, desc: 'Növbə sayı x 20 AZN' },
           { title: 'Gözləmədə Olan', value: appointments.filter(a => a.status === 'PENDING').length, icon: Clock, desc: 'Təsdiq gözləyən' },
         ].map((card, idx) => {
           const Icon = card.icon
@@ -88,16 +167,14 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Canlı Növbə Cədvəli */}
+      {/* Süzgəcdən Keçmiş Canlı Növbə Cədvəli */}
       <div className="bg-surface border border-white/10 rounded-2xl p-6 bg-glass-gradient shadow-glass">
         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-          Canlı Rezervasiya Axışı
+          {userRole === 'ADMIN' ? 'Canlı Rezervasiya Axışı (Bütün Salon)' : 'Mənə Aid Canlı Rezervasiyalar'}
         </h2>
 
-        {loading ? (
-          <p className="text-gray-400 text-sm">Yüklənir...</p>
-        ) : appointments.length === 0 ? (
+        {appointments.length === 0 ? (
           <p className="text-gray-400 text-sm">Hələ ki heç bir rezervasiya daxil olmayıb.</p>
         ) : (
           <div className="overflow-x-auto">
