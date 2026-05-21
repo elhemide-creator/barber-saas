@@ -40,7 +40,7 @@ export default function BarberBookingPage() {
       }
     }
     getBarber()
-  } [slug])
+  }, [slug])
 
   // 2. Növbəni təsdiqləmə funksiyası
   const handleSubmit = async (e: React.FormEvent) => {
