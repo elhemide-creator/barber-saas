@@ -11,7 +11,7 @@ const AVAILABLE_TIMES = ["10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "
 export default function BarberBookingPage() {
   const params = useParams()
   const slug = params.slug as string
-  const lang = 'az' // Standart olaraq Azərbaycan dili (languages faylına uyğun)
+  const lang = 'az' // Standart olaraq Azərbaycan dili
   const t = languages[lang]
 
   const [barber, setBarber] = useState<any>(null)
@@ -40,9 +40,9 @@ export default function BarberBookingPage() {
       }
     }
     getBarber()
-  }, [slug]) // Vergül xətası tamamilə düzəldildi
+  }, [slug])
 
-  // 2. Növbəni təsdiqləmə funksiyası (Şəkildəki real bazaya uyğunlaşdırıldı)
+  // 2. Növbəni təsdiqləmə funksiyası
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedTime) {
@@ -58,12 +58,13 @@ export default function BarberBookingPage() {
       .insert([
         {
           barber_id: barber.id,
+          tenant_id: barber.tenant_id,                 // Gözəl düzəliş: Salon ID-si mütləq bura yazılır!
           customer_name: name.trim(),
           customer_phone: phone.trim(),
-          date: new Date().toISOString().split('T')[0], // 'date' olaraq yeniləndi
-          start_time: selectedTime,                     // 'start_time' olaraq yeniləndi
-          status: 'PENDING',                            // Böyük hərflə 'PENDING' edildı
-          service_type: 'Saç kəsimi'                    // Default olaraq əlavə edildi
+          date: new Date().toISOString().split('T')[0], 
+          start_time: selectedTime,                     
+          status: 'PENDING',                            
+          service_type: 'Saç kəsimi'                    
         }
       ])
 
