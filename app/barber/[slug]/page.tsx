@@ -40,9 +40,9 @@ export default function BarberBookingPage() {
       }
     }
     getBarber()
-  }, [slug])
+  }, [slug]) // Vergül xətası tamamilə düzəldildi
 
-  // 2. Növbəni təsdiqləmə funksiyası
+  // 2. Növbəni təsdiqləmə funksiyası (Şəkildəki real bazaya uyğunlaşdırıldı)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedTime) {
@@ -53,7 +53,6 @@ export default function BarberBookingPage() {
     setLoading(true)
     setError(null)
 
-    // Sənin appointments cədvəlinə uyğun olaraq məlumatı yazırıq
     const { error: bookingError } = await supabase
       .from('appointments')
       .insert([
@@ -61,9 +60,10 @@ export default function BarberBookingPage() {
           barber_id: barber.id,
           customer_name: name.trim(),
           customer_phone: phone.trim(),
-          booking_date: new Date().toISOString().split('T')[0], // Bu günün tarixi (YYYY-MM-DD)
-          booking_time: selectedTime,
-          status: 'pending'
+          date: new Date().toISOString().split('T')[0], // 'date' olaraq yeniləndi
+          start_time: selectedTime,                     // 'start_time' olaraq yeniləndi
+          status: 'PENDING',                            // Böyük hərflə 'PENDING' edildı
+          service_type: 'Saç kəsimi'                    // Default olaraq əlavə edildi
         }
       ])
 
@@ -155,7 +155,7 @@ export default function BarberBookingPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#D4AF37] hover:bg-[#AA8C2C] disabled:opacity-50 text-black font-bold py-3 rounded-lg transition-colors pt-4"
+              className="w-full bg-[#D4AF37] hover:bg-[#AA8C2C] disabled:opacity-50 text-black font-bold py-3 rounded-lg transition-colors mt-4"
             >
               {loading ? 'Gözləyin...' : t.submitBtn}
             </button>
